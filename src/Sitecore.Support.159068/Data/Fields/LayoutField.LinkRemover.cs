@@ -184,7 +184,7 @@
           RemoveLinkFromCustomField(itemLink, field);
         }
 
-        rendering.Parameters = renderingParametersFieldCollection.GetParameters().ToString();
+        //rendering.Parameters = renderingParametersFieldCollection.GetParameters().ToString();
       }
 
       private void SaveLayoutField(LayoutDefinition layoutDefinition)
