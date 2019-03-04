@@ -220,8 +220,17 @@
 
         if (string.IsNullOrEmpty(field.Value)) return false;
 
-        return StringUtil.Contains(field.Value, itemLink.TargetPath, StringComparison.OrdinalIgnoreCase) ||
-               StringUtil.Contains(field.Value, itemLink.TargetItemID.ToString(), StringComparison.OrdinalIgnoreCase);
+        return Contains(field.Value, itemLink.TargetPath, StringComparison.OrdinalIgnoreCase) ||
+               Contains(field.Value, itemLink.TargetItemID.ToString(), StringComparison.OrdinalIgnoreCase);
+      }
+
+      public static bool Contains(string text, string substr, StringComparison comp)
+      {
+        if (text != null)
+        {
+          return text.IndexOf(substr, 0, comp) >= 0;
+        }
+        return false;
       }
 
       #endregion
