@@ -9,6 +9,8 @@
   using Sitecore.Diagnostics;
   using Sitecore.Layouts;
   using Sitecore.Links;
+  using Sitecore.Pipelines.ResolveRenderingDatasource;
+  using Sitecore.Pipelines;
 
   public partial class LayoutField
   {
@@ -17,6 +19,7 @@
       #region Properties
 
       private readonly LayoutField layout;
+      private readonly Item currentContextItem;
 
       private static readonly MethodInfo GetParametersFieldsMethodInfo =
         typeof(Sitecore.Data.Fields.LayoutField).GetMethod("GetParametersFields",
@@ -26,9 +29,10 @@
 
       #region C'tors
 
-      public LinkRemover(LayoutField layout)
+      public LinkRemover(LayoutField layout, Item currentContextItem)
       {
         this.layout = layout;
+        this.currentContextItem = currentContextItem;
       }
 
       #endregion
@@ -136,12 +140,23 @@
       {
         string targetItemId = itemLink.TargetItemID.ToString();
 
-        if (rendering.Datasource == itemLink.TargetPath)
+        string currentDatasource = rendering.Datasource;
+        if (!string.IsNullOrEmpty(rendering.Datasource))
+        {
+          using (new ContextItemSwitcher(currentContextItem))
+          {
+            ResolveRenderingDatasourceArgs resolveRenderingDatasourceArgs = new ResolveRenderingDatasourceArgs(rendering.Datasource);
+            CorePipeline.Run("resolveRenderingDatasource", resolveRenderingDatasourceArgs, false);
+            currentDatasource = resolveRenderingDatasourceArgs.Datasource;
+          }
+        }
+
+        if (currentDatasource != null && currentDatasource.Equals(itemLink.TargetPath, StringComparison.OrdinalIgnoreCase))
         {
           rendering.Datasource = string.Empty;
         }
 
-        if (rendering.Datasource == targetItemId)
+        if (currentDatasource == targetItemId)
         {
           rendering.Datasource = string.Empty;
         }

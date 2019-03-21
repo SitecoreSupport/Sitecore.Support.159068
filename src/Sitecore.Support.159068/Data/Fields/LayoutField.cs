@@ -5,21 +5,19 @@
   using Sitecore.Diagnostics;
   using Sitecore.Layouts;
   using Sitecore.Links;
+  using Sitecore.Pipelines;
+  using Sitecore.Pipelines.ResolveRenderingDatasource;
   using Sitecore.Text;
   using System;
   using System.Collections;
   using System.Xml.Linq;
 
-  public partial class LayoutField: Sitecore.Data.Fields.LayoutField
+  public partial class LayoutField: Sitecore.XA.Foundation.SitecoreExtensions.CustomFields.LayoutField
   {
     public LayoutField(Item item) : base(item)
     {
     }
-
-    public LayoutField(Item item, string runtimeValue) : base(item, runtimeValue)
-    {
-    }
-
+    
     public LayoutField(Field innerField) : base(innerField)
     {
     }
@@ -30,7 +28,7 @@
 
     public override void RemoveLink(ItemLink itemLink)
     {
-      LinkRemover linkRemover = new LinkRemover(this);
+      LinkRemover linkRemover = new LinkRemover(this, base.InnerField.Item);
       linkRemover.RemoveLink(itemLink);
     }
     public override void Relink(ItemLink itemLink, Item newLink)
@@ -122,12 +120,23 @@
             rendering.ItemID = newLinkID;
           }
 
-          if (rendering.Datasource == targetItemID)
+          string currentDatasource = rendering.Datasource;
+          if (!string.IsNullOrEmpty(rendering.Datasource))
+          {
+            using (new ContextItemSwitcher(base.InnerField.Item))
+            {
+              ResolveRenderingDatasourceArgs resolveRenderingDatasourceArgs = new ResolveRenderingDatasourceArgs(rendering.Datasource);
+              CorePipeline.Run("resolveRenderingDatasource", resolveRenderingDatasourceArgs, false);
+              currentDatasource = resolveRenderingDatasourceArgs.Datasource;
+            }
+          }
+
+          if (currentDatasource == targetItemID)
           {
             rendering.Datasource = newLinkID;
           }
 
-          if (rendering.Datasource == itemLink.TargetPath)
+          if (currentDatasource != null && currentDatasource.Equals(itemLink.TargetPath, StringComparison.OrdinalIgnoreCase))
           {
             rendering.Datasource = newLink.Paths.FullPath;
           }
@@ -164,14 +173,6 @@
       }
 
       this.Value = layoutDefinition.ToXml();
-    }
-
-    private RenderingParametersFieldCollection GetParametersFields(Item layoutItem, string renderingParameters)
-    {
-      UrlString parameters = new UrlString(renderingParameters);
-      RenderingParametersFieldCollection parametersFields;
-      RenderingParametersFieldCollection.TryParse(layoutItem, parameters, out parametersFields);
-      return parametersFields;
     }
 
   }
